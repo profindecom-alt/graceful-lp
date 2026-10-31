@@ -27,6 +27,7 @@
       city: 'Indiquez votre ville de résidence.',
       sendError: 'L\'envoi n\'a pas abouti. Vérifiez votre connexion puis réessayez : vos informations sont conservées.',
       sending: 'Envoi en cours…',
+      step2Missing: 'Répondez aux 3 questions pour terminer.',
       phOther: '+ indicatif et numéro',
       phMobile: 'Numéro de mobile',
       videoCaption: 'Visite intérieure · vidéo non contractuelle',
@@ -48,6 +49,7 @@
       city: 'أدخلوا مدينة إقامتكم.',
       sendError: 'لم يتم الإرسال. تحققوا من اتصالكم بالإنترنت ثم أعيدوا المحاولة: معلوماتكم محفوظة.',
       sending: 'جارٍ الإرسال…',
+      step2Missing: 'أجيبوا عن الأسئلة الثلاثة لإتمام الطلب.',
       phOther: '+ رمز البلد والرقم',
       phMobile: 'رقم الهاتف المحمول',
       videoCaption: 'جولة داخلية · فيديو غير تعاقدي',
@@ -79,16 +81,18 @@
 
   var DRAFT_KEY = 'yacout_draft';      // ce que le visiteur a saisi (localStorage)
   var PENDING_KEY = 'yacout_pending';  // envois échoués, renvoyés au prochain chargement (localStorage)
-  var LEAD_KEY = 'yacout_lead';        // état du lead pour cette visite (sessionStorage)
+  var LEAD_KEY = 'yacout_lead';        // état du lead (localStorage) : le visiteur qui revient reprend à l'étape 2, jamais à l'étape 1
+  var LEAD_MAX_AGE_MS = 7 * 86400000;  // au-delà de 7 jours, il repart d'un nouveau formulaire
   var ATTR_KEY = 'yacout_attr';        // UTM et fbclid de la visite (sessionStorage)
   var FIRST_NAME_KEY = 'yacout_first_name';
   var THANKS_KEY = 'yacout_thanks';    // lead_id, prénom et réponses de l'étape 2 pour la page merci (sessionStorage)
 
   // Valeurs en mémoire : servent de repli si le stockage du navigateur est bloqué.
   var draft = storageGet(DRAFT_KEY) || {};
-  var lead = storageGet(LEAD_KEY, true) || {};
+  var lead = storageGet(LEAD_KEY) || {};
+  if (lead.step1_sent && !(Date.now() - lead.sent_at < LEAD_MAX_AGE_MS)) { lead = {}; storageRemove(LEAD_KEY); }
   function saveDraft() { storageSet(DRAFT_KEY, draft); }
-  function saveLead() { storageSet(LEAD_KEY, lead, true); }
+  function saveLead() { storageSet(LEAD_KEY, lead); }
 
   // ---------- Attribution (UTM, fbclid) ----------
   var ATTR_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid'];
@@ -357,8 +361,9 @@
     context.residence = draft.residence || '';
     storageSet(THANKS_KEY, context, true);
     storageRemove(DRAFT_KEY);
-    storageRemove(LEAD_KEY, true);
-    location.href = THANK_YOU_URL;
+    storageRemove(LEAD_KEY);
+    // replace : le bouton retour du navigateur ne ramène pas au formulaire
+    location.replace(THANK_YOU_URL);
   }
 
   function buildStep1Payload(form, name, phoneResult, city) {
@@ -429,6 +434,7 @@
     send(payload).then(function () {
       removePending(payload);
       lead.step1_sent = true;
+      lead.sent_at = Date.now();
       saveLead();
       storageSet(FIRST_NAME_KEY, lead.first_name, true);
       if (window.YacoutTrack) window.YacoutTrack.lead(lead.lead_id);
@@ -445,6 +451,19 @@
     var button = q(form, '[data-finish]');
     var status = q(form, '[data-status2]');
     if (button.disabled) return;
+    // Les 3 questions sont obligatoires : le visiteur ne quitte l'étape 2 qu'après y avoir répondu.
+    var firstMissing = null;
+    Array.prototype.forEach.call(form.querySelectorAll('.choices'), function (box) {
+      var input = box.querySelector('input');
+      var missing = !draft[input.name];
+      box.classList.toggle('is-missing', missing);
+      if (missing && !firstMissing) firstMissing = input;
+    });
+    if (firstMissing) {
+      status.textContent = TXT.step2Missing;
+      firstMissing.focus();
+      return;
+    }
     // Fiche complète : toutes les infos de l'étape 1 (nom, téléphone, ville, UTM…) + les réponses de l'étape 2
     var payload = {};
     var step1 = lead.step1 || {};
@@ -497,17 +516,31 @@
     });
     STEP2_FIELDS.forEach(function (field) {
       Array.prototype.forEach.call(form.querySelectorAll('input[name="' + field + '"]'), function (r) {
-        r.addEventListener('change', function () { draft[field] = r.value; saveDraft(); syncForms(form); });
+        r.addEventListener('change', function () {
+          draft[field] = r.value; saveDraft(); syncForms(form);
+          r.closest('.choices').classList.remove('is-missing');
+          if (!form.querySelector('.choices.is-missing')) q(form, '[data-status2]').textContent = '';
+        });
       });
     });
 
     q(form, '[data-finish]').addEventListener('click', function () { onFinish(form); });
-    q(form, '[data-skip]').addEventListener('click', goToThankYou);
   });
 
   syncForms(null);
   if (lead.step1_sent) showStep2(null);
   flushPending();
+
+  // Connexion au webhook préparée dès le premier champ touché : l'envoi du formulaire part plus vite.
+  document.addEventListener('focusin', function warmUp(e) {
+    if (!e.target.closest || !e.target.closest('.lead-form')) return;
+    document.removeEventListener('focusin', warmUp);
+    var link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = new URL(WEBHOOK_URL, location.href).origin;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  });
 
   // ---------- Appels à l'action : tous ramènent au formulaire ----------
   var formAnchor = document.getElementById('formulaire');
@@ -636,11 +669,41 @@
     setLightboxImage(s.full, s.alt);
     lbCaption.textContent = s.caption + ' · ' + (lbIndex + 1) + TXT.slideOf + slides.length;
   }
+  // Vidéo du projet : lecture et pause uniquement, jamais les commandes du navigateur
+  // (ni téléchargement, ni vitesse de lecture, ni image dans l'image, ni menu).
   var lbVideo = lightbox && lightbox.querySelector('[data-lb-video]');
+  var lbVideoBox = lightbox && lightbox.querySelector('[data-lb-video-box]');
+  var lbPlay = lightbox && lightbox.querySelector('[data-lb-play]');
+  var lbBar = lightbox && lightbox.querySelector('[data-lb-bar]');
+  function playLightboxVideo() {
+    var p = lbVideo.play();
+    if (p && p.catch) p.catch(function () { lbPlay.hidden = false; /* lecture refusée : le visiteur la lance lui-même */ });
+  }
+  function toggleLightboxVideo() {
+    if (lbVideo.paused) playLightboxVideo(); else lbVideo.pause();
+  }
+  if (lbVideo) {
+    lbPlay.addEventListener('click', function () {
+      toggleLightboxVideo();
+      lbVideo.focus({ preventScroll: true }); // le bouton disparaît : le clavier reste sur la vidéo
+    });
+    lbVideo.addEventListener('click', toggleLightboxVideo);
+    lbVideo.addEventListener('keydown', function (e) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleLightboxVideo(); }
+    });
+    lbVideo.addEventListener('play', function () { lbPlay.hidden = true; });
+    lbVideo.addEventListener('pause', function () { lbPlay.hidden = false; });
+    lbVideo.addEventListener('timeupdate', function () {
+      if (lbVideo.duration) lbBar.style.transform = 'scaleX(' + lbVideo.currentTime / lbVideo.duration + ')';
+    });
+    ['contextmenu', 'dragstart'].forEach(function (type) {
+      lbVideoBox.addEventListener(type, function (e) { e.preventDefault(); });
+    });
+  }
   function stopLightboxVideo() {
     if (!lbVideo) return;
     lbVideo.pause();
-    lbVideo.hidden = true;
+    lbVideoBox.hidden = true;
     lightbox.classList.remove('is-video');
   }
   function openVideo() {
@@ -649,10 +712,11 @@
     lightbox.classList.add('is-video');
     lbCaption.textContent = TXT.videoCaption;
     if (!lbVideo.getAttribute('src')) lbVideo.src = ROOT + 'assets/vid/yacout-interieur.mp4';
-    lbVideo.hidden = false;
+    lbVideo.setAttribute('aria-label', TXT.videoCaption);
+    lbVideoBox.hidden = false;
     lightbox.showModal();
-    var p = lbVideo.play();
-    if (p && p.catch) p.catch(function () { /* lecture manuelle via les contrôles */ });
+    lbVideo.focus({ preventScroll: true });
+    playLightboxVideo();
   }
   function openLightbox(key) {
     if (!lightbox || typeof lightbox.showModal !== 'function') return;
@@ -856,18 +920,19 @@
   }
 
   // ---------- Vidéo de fond du hero ----------
-  // Chargée après la page, seulement si l'utilisateur accepte les animations et n'économise pas ses données.
+  // Chargée après la page, seulement si l'utilisateur accepte les animations, n'économise pas ses données
+  // et n'est pas sur une connexion lente : l'image reste affichée sinon.
   var heroVideo = document.querySelector('[data-hero-video]');
-  var saveData = navigator.connection && navigator.connection.saveData;
-  if (heroVideo && !reduceMotion && !saveData) {
+  var connection = navigator.connection || {};
+  if (heroVideo && !reduceMotion && !connection.saveData && !/2g|3g/.test(connection.effectiveType || '')) {
     var startHeroVideo = function () {
       heroVideo.src = heroVideo.getAttribute('data-src');
       heroVideo.addEventListener('playing', function () { heroVideo.classList.add('is-playing'); }, { once: true });
       var p = heroVideo.play();
       if (p && p.catch) p.catch(function () { /* lecture automatique bloquée : l'image reste affichée */ });
     };
-    if (document.readyState === 'complete') setTimeout(startHeroVideo, 600);
-    else window.addEventListener('load', function () { setTimeout(startHeroVideo, 600); });
+    if (document.readyState === 'complete') setTimeout(startHeroVideo, 1500);
+    else window.addEventListener('load', function () { setTimeout(startHeroVideo, 1500); });
     // Pause hors écran : la boucle ne décode plus pendant que le visiteur regarde la vue 3D
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (entries) {
@@ -877,46 +942,6 @@
           if (p && p.catch) p.catch(function () {});
         } else heroVideo.pause();
       }).observe(heroVideo);
-    }
-  }
-
-  // ---------- Visite intérieure : vidéo muette, chargée à l'approche, lue seulement à l'écran ----------
-  // Lecture seule : jamais les commandes du navigateur (pas de téléchargement, plein écran ni menu).
-  var interiorVideo = document.querySelector('[data-interior-video]');
-  if (interiorVideo) {
-    var interiorFrame = interiorVideo.closest('[data-interior-frame]');
-    var interiorPlay = interiorFrame.querySelector('[data-interior-play]');
-    var interiorStarted = false; // une fois lancée par le visiteur, elle suit le défilement comme en lecture auto
-    ['contextmenu', 'dragstart', 'dblclick'].forEach(function (type) {
-      interiorFrame.addEventListener(type, function (e) { e.preventDefault(); });
-    });
-    interiorVideo.addEventListener('play', function () { interiorStarted = true; interiorPlay.hidden = true; });
-    interiorPlay.addEventListener('click', function () {
-      var p = interiorVideo.play();
-      if (p && p.catch) p.catch(function () {});
-    });
-    var showPlayButton = function () { if (!interiorStarted) interiorPlay.hidden = false; };
-    var loadInterior = function () {
-      if (!interiorVideo.getAttribute('src')) interiorVideo.src = interiorVideo.getAttribute('data-src');
-    };
-    if (reduceMotion || saveData || !('IntersectionObserver' in window)) {
-      // Pas de lecture automatique : le visiteur lance la vidéo lui-même
-      loadInterior();
-      showPlayButton();
-    } else {
-      var loadObserver = new IntersectionObserver(function (entries) {
-        if (!entries[0].isIntersecting) return;
-        loadInterior();
-        loadObserver.disconnect();
-      }, { rootMargin: '400px 0px' });
-      loadObserver.observe(interiorVideo);
-      new IntersectionObserver(function (entries) {
-        if (entries[0].isIntersecting) {
-          loadInterior();
-          var p = interiorVideo.play();
-          if (p && p.catch) p.catch(showPlayButton);
-        } else interiorVideo.pause();
-      }, { threshold: .35 }).observe(interiorVideo);
     }
   }
 
@@ -983,30 +1008,44 @@
       if (orbitRange && v !== lastRangeValue) { orbitRange.value = v; lastRangeValue = v; }
     };
 
-    var loadAll = function () {
-      // d'abord une image sur 5 (tour complet rapide), puis les autres
-      var order = [];
-      for (var s = 0; s < 5; s++) for (var i = s; i < total; i += 5) order.push(i);
-      order.forEach(function (i) {
-        var im = new Image();
-        var counted = function () {
-          loadedCount++;
-          if (orbitBar) {
-            orbitBar.firstElementChild.style.width = Math.round(loadedCount / total * 100) + '%';
-            if (loadedCount === total) orbitBar.classList.add('is-done');
-          }
-        };
-        im.onload = function () {
-          var ok = function () { ready[i] = true; counted(); if (!playing) requestDraw(); };
-          if (im.decode) im.decode().then(ok, ok); else ok();
-        };
-        im.onerror = counted;
-        im.src = frameSrc(i);
-        frames[i] = im;
-      });
+    // Une image sur 5 à l'approche de la section (tour complet rapide), les autres une fois la vue à l'écran :
+    // le visiteur qui passe sans s'arrêter ne les télécharge pas. Six téléchargements à la fois au maximum.
+    var frameQueue = [], activeLoads = 0, restQueued = false;
+    var pump = function () {
+      while (activeLoads < 6 && frameQueue.length) loadFrame(frameQueue.shift());
+    };
+    var loadFrame = function (i) {
+      activeLoads++;
+      var im = new Image();
+      var counted = function () {
+        activeLoads--;
+        loadedCount++;
+        if (orbitBar) {
+          orbitBar.firstElementChild.style.width = Math.round(loadedCount / total * 100) + '%';
+          if (loadedCount === total) orbitBar.classList.add('is-done');
+        }
+        pump();
+      };
+      im.onload = function () {
+        var ok = function () { ready[i] = true; counted(); if (!playing) requestDraw(); };
+        if (im.decode) im.decode().then(ok, ok); else ok();
+      };
+      im.onerror = counted;
+      im.src = frameSrc(i);
+      frames[i] = im;
+    };
+    var loadKeyFrames = function () {
+      for (var i = 0; i < total; i += 5) frameQueue.push(i);
+      pump();
+    };
+    var loadRest = function () {
+      if (restQueued) return;
+      restQueued = true;
+      for (var s = 1; s < 5; s++) for (var i = s; i < total; i += 5) frameQueue.push(i);
+      pump();
     };
 
-    var markTouched = function () { touched = true; orbit.classList.add('is-touched'); };
+    var markTouched = function () { touched = true; orbit.classList.add('is-touched'); loadRest(); };
 
     // Glisser (souris, doigt, stylet). La rotation automatique ne s'arrête qu'au premier vrai glissement,
     // pas quand le doigt se pose pour faire défiler la page.
@@ -1050,16 +1089,17 @@
 
     if ('IntersectionObserver' in window) {
       var preload = new IntersectionObserver(function (entries) {
-        if (entries.some(function (en) { return en.isIntersecting; })) { preload.disconnect(); loadAll(); }
+        if (entries.some(function (en) { return en.isIntersecting; })) { preload.disconnect(); loadKeyFrames(); }
       }, { rootMargin: '600px 0px' });
       preload.observe(orbit);
       var seen = new IntersectionObserver(function (entries) {
         orbitVisible = entries[0].isIntersecting;
-        if (orbitVisible) play();
+        if (orbitVisible) { loadRest(); play(); }
       }, { threshold: 0.5 });
       seen.observe(orbit);
     } else {
-      loadAll();
+      loadKeyFrames();
+      loadRest();
     }
   }
 
@@ -1104,6 +1144,8 @@
     var giantSlides = [];
     var giantDots = giant.querySelectorAll('.giant-dots i');
     var giantTick = false;
+    // Flou de transition réservé à l'ordinateur : trop coûteux à recalculer à chaque image sur téléphone
+    var giantBlur = window.matchMedia('(min-width: 1024px)').matches;
     var setGiantSlides = function () {
       giantSlides = Array.prototype.filter.call(giant.querySelectorAll('.giant-slide'), function (s) { return !s.hidden; });
       Array.prototype.forEach.call(giantDots, function (d, i) { d.hidden = i >= giantSlides.length; });
@@ -1123,7 +1165,7 @@
         var a = Math.abs(d);
         s.style.opacity = Math.max(0, Math.min(1, 1 - (a - .28) / .2));
         s.style.transform = 'translateY(' + (-d * 90) + 'px) scale(' + (1 + d * .3) + ')';
-        s.style.filter = a > .26 ? 'blur(' + (a - .26) * 40 + 'px)' : 'none';
+        s.style.filter = giantBlur && a > .26 ? 'blur(' + (a - .26) * 40 + 'px)' : 'none';
         s.style.visibility = a < .5 ? 'visible' : 'hidden';
       });
       var cur = Math.min(n - 1, Math.floor(p * n));
@@ -1133,7 +1175,7 @@
     var reqGiant = function () { if (!giantTick) { giantTick = true; requestAnimationFrame(drawGiant); } };
     window.addEventListener('scroll', reqGiant, { passive: true });
     window.addEventListener('resize', reqGiant);
-    drawGiant();
+    reqGiant();
 
     // L'étape 2 (3 questions) est trop haute pour un écran figé : on sort du mode animé
     if (giantForm && !giantFormSlide.hidden && 'MutationObserver' in window) {

@@ -64,6 +64,7 @@
 [dir="rtl"] .phone-row input { text-align: left; }
 [dir="rtl"] .phone-row input::placeholder { text-align: left; }
 [dir="rtl"] .form-ok { padding: 5px 8px 5px 12px; }
+@media (max-width: 767px) { [dir="rtl"] .form-ok { padding: 3px 6px 3px 10px; } }
 
 /* Chiffres clés */
 [dir="rtl"] .proof-grid li:nth-child(odd) { border-right: 0; border-left: 1px solid var(--navy-line); }
@@ -160,3 +161,6 @@
 @media (min-width: 1024px) {
   [dir="rtl"] .thanks-photo figcaption { left: auto; right: 32px; }
 }
+
+/* ---------- Barres de progression des vidéos : se remplissent depuis la droite ---------- */
+[dir="rtl"] .lb-bar span, [dir="rtl"] .vsl-bar span { transform-origin: right; }

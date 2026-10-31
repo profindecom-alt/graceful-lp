@@ -33,7 +33,9 @@
   <link rel="preload" href="../../assets/fonts/ibm-plex-sans-arabic-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="../../assets/fonts/ibm-plex-sans-arabic-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" as="image" href="../../assets/img/yacout-facade-jour.webp" imagesrcset="../../assets/img/yacout-facade-jour-480.webp 480w, ../../assets/img/yacout-facade-jour.webp 760w" imagesizes="(min-width: 1024px) 680px, 100vw" fetchpriority="high">
-  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="../../assets/css/core.css">
+  <link rel="preload" as="style" href="../../assets/css/style.css" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="../../assets/css/style.css"></noscript>
   <link rel="stylesheet" href="../../assets/css/rtl.css">
   <script>document.documentElement.classList.add('js');</script>
 
@@ -97,7 +99,7 @@
                  sizes="(min-width: 1024px) 680px, 100vw"
                  width="760" height="397" fetchpriority="high"
                  alt="تصميم ثلاثي الأبعاد لإقامة ياقوت: عمارة بيضاء من سبعة طوابق بطابق أرضي زجاجي، مع حديقة ونخيل، في وسط مدينة أكادير">
-            <video class="hero-video" data-hero-video data-src="../../assets/vid/yacout-interieur.mp4" muted playsinline loop preload="none" aria-hidden="true" tabindex="-1"></video>
+            <video class="hero-video" data-hero-video data-src="../../assets/vid/yacout-interieur-hero.mp4" muted playsinline loop preload="none" aria-hidden="true" tabindex="-1"></video>
             <span class="img-note">صورة غير تعاقدية</span>
           </div>
           <figcaption class="hero-prices">
@@ -153,7 +155,7 @@
             <div class="form-step" data-step="2" hidden>
               <div class="form-progress">
                 <p class="form-ok"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>تم إرسال الطلب</p>
-                <p class="form-progress-label">الخطوة الأخيرة، اختيارية</p>
+                <p class="form-progress-label">الخطوة الأخيرة</p>
               </div>
               <h2 class="form-title" tabindex="-1" data-step2-title>3 أسئلة لننصحكم بشكل أفضل</h2>
 
@@ -177,7 +179,6 @@
 
               <button class="btn btn-gold btn-block btn-arrow" type="button" data-finish><span data-label>إنهاء</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
               <p class="form-status" role="alert" data-status2></p>
-              <button class="link-skip" type="button" data-skip>تخطي هذه الخطوة</button>
             </div>
           </form>
         </div>

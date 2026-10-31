@@ -1,6 +1,10 @@
 /*
  * Tracking : Meta Pixel (PageView partout, Lead à l'étape 1 uniquement),
  * Google Analytics 4 et Microsoft Clarity si leurs IDs sont renseignés.
+ *
+ * Les bibliothèques (celle de Meta pèse environ 200 Ko compressés) sont chargées après la page, pour ne retarder
+ * ni l'affichage ni les premiers appuis. Les événements attendent dans une file (fbq, dataLayer) jusqu'à leur arrivée.
+ * Déclencheurs : 2 s après le chargement de la page, 4 s au plus tard, ou tout de suite au premier appui ou champ touché.
  */
 (function () {
   var cfg = window.YACOUT_CONFIG || {};
@@ -9,41 +13,52 @@
   var clarityId = String(cfg.CLARITY_PROJECT_ID || '').trim();
   var pixelOn = /^\d{6,20}$/.test(pixelId);
 
-  // Meta Pixel (code de base officiel)
+  // Meta Pixel (code de base officiel ; le script est inséré plus bas, par loadLibraries)
   if (pixelOn) {
-    !function (f, b, e, v, n, t, s) {
-      if (f.fbq) return; n = f.fbq = function () {
+    !function (f) {
+      if (f.fbq) return; var n = f.fbq = function () {
         n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
       };
       if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-      n.queue = []; t = b.createElement(e); t.async = !0;
-      t.src = v; s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s);
-    }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+      n.queue = [];
+    }(window);
     window.fbq('init', pixelId);
     window.fbq('track', 'PageView');
   }
 
   // Google Analytics 4
   if (ga4Id) {
-    var g = document.createElement('script');
-    g.async = true;
-    g.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(ga4Id);
-    document.head.appendChild(g);
     window.dataLayer = window.dataLayer || [];
     window.gtag = function () { window.dataLayer.push(arguments); };
     window.gtag('js', new Date());
     window.gtag('config', ga4Id);
   }
 
-  // Microsoft Clarity
-  if (clarityId) {
-    (function (c, l, a, r, i, t, y) {
-      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
-      t = l.createElement(r); t.async = 1; t.src = 'https://www.clarity.ms/tag/' + i;
-      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
-    })(window, document, 'clarity', 'script', clarityId);
+  function addScript(src) {
+    var t = document.createElement('script');
+    t.async = true;
+    t.src = src;
+    document.head.appendChild(t);
   }
+
+  var librariesLoaded = false;
+  function loadLibraries() {
+    if (librariesLoaded) return;
+    librariesLoaded = true;
+    if (pixelOn) addScript('https://connect.facebook.net/en_US/fbevents.js');
+    if (ga4Id) addScript('https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(ga4Id));
+    // Microsoft Clarity
+    if (clarityId) {
+      window.clarity = window.clarity || function () { (window.clarity.q = window.clarity.q || []).push(arguments); };
+      addScript('https://www.clarity.ms/tag/' + clarityId);
+    }
+  }
+  ['pointerdown', 'keydown', 'focusin'].forEach(function (type) {
+    window.addEventListener(type, loadLibraries, { once: true, passive: true });
+  });
+  if (document.readyState === 'complete') setTimeout(loadLibraries, 2000);
+  else window.addEventListener('load', function () { setTimeout(loadLibraries, 2000); });
+  setTimeout(loadLibraries, 4000);
 
   window.YacoutTrack = {
     // Seul événement Meta envoyé en plus du PageView.
