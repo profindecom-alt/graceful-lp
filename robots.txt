@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /merci/
+Disallow: /ar/merci/
+
+Sitemap: https://form.graceful-agency.ma/sitemap.xml

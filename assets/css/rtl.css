@@ -1,0 +1,162 @@
+/*
+ * Version arabe (/ar/) : chargé après style.css, uniquement sur les pages en arabe (<html lang="ar" dir="rtl">).
+ * Police : IBM Plex Sans Arabic pour l'arabe ; chiffres et mots latins restent en Plus Jakarta Sans (comme la page française).
+ * L'arabe n'a ni italique, ni capitales, ni interlettrage : les mots mis en valeur restent en or, l'interlignage est plus grand.
+ * Le reste de ce fichier inverse ce qui est positionné à gauche ou à droite dans style.css.
+ */
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("../fonts/ibm-plex-sans-arabic-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("../fonts/ibm-plex-sans-arabic-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("../fonts/ibm-plex-sans-arabic-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+@font-face { font-family: "IBM Plex Sans Arabic"; src: url("../fonts/ibm-plex-sans-arabic-700.woff2") format("woff2"); font-weight: 700 800; font-style: normal; font-display: swap; unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FEFC; }
+
+:root[dir="rtl"] { --font: "Plus Jakarta Sans", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", Tahoma, Arial, sans-serif; }
+
+/* ---------- Typographie arabe ---------- */
+[dir="rtl"] body { line-height: 1.75; }
+[dir="rtl"] body * { letter-spacing: 0; }
+[dir="rtl"] em, [dir="rtl"] .marquee li, [dir="rtl"] .ribbon li { font-style: normal; }
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 { line-height: 1.35; }
+[dir="rtl"] .hero h1 { line-height: 1.3; }
+[dir="rtl"] .h1-place, [dir="rtl"] .h1-price { white-space: normal !important; }
+[dir="rtl"] .h1-price .gold { white-space: nowrap; }
+/* téléphone : trois lignes comme en français (« شقق جديدة » / lieu / prix) ; taille proportionnelle
+   à l'écran pour que la ligne du prix tienne entière, même sur un 320 px */
+@media (max-width: 767px) {
+  [dir="rtl"] .hero h1 { font-size: min(33px, 8.2vw); line-height: 1.32; }
+  [dir="rtl"] .h1-place, [dir="rtl"] .h1-price { display: block; }
+}
+[dir="rtl"] .hero-sub { line-height: 1.8; }
+[dir="rtl"] .why-step h3, [dir="rtl"] .pay-track h3 { line-height: 1.35; }
+[dir="rtl"] .giant-form-title { line-height: 1.3; }
+[dir="rtl"] .giant-form-title em { padding-right: 0; font-weight: 400; }
+[dir="rtl"] .final-title { line-height: 1.35; }
+[dir="rtl"] .about-who h2 { line-height: 1.6; }
+[dir="rtl"] .type-price, [dir="rtl"] .proof-grid strong, [dir="rtl"] .about-nums strong { line-height: 1.2; }
+/* gros chiffres seuls : on garde l'interlettrage serré de la version française */
+[dir="rtl"] .giant-slide > b { letter-spacing: -.07em; }
+[dir="rtl"] .giant-slide > b sup { letter-spacing: -.02em; }
+[dir="rtl"] .why-big { letter-spacing: -.07em; }
+[dir="rtl"] .footer-word { letter-spacing: -.06em; direction: ltr; }
+[dir="rtl"] .proof-grid strong { letter-spacing: -.04em; }
+[dir="rtl"] .proof-grid strong small { letter-spacing: 0; }
+
+/* ---------- Flèches : pointent vers la gauche (sens de lecture) ---------- */
+[dir="rtl"] .btn-arrow .icon, [dir="rtl"] .thanks-back .icon, [dir="rtl"] .chat-send .icon { transform: scaleX(-1); }
+@media (hover: hover) {
+  [dir="rtl"] .btn-arrow:hover .icon, [dir="rtl"] .thanks-back a:hover .icon { transform: scaleX(-1) translateX(4px); }
+}
+
+/* ---------- Éléments posés à gauche ou à droite ---------- */
+[dir="rtl"] .img-note { right: auto; left: 12px; }
+[dir="rtl"] .badge { padding: 7px 12px 7px 14px; }
+[dir="rtl"] .reassurance li { padding: 6px 8px 6px 12px; }
+[dir="rtl"] .hero-bg {
+  background:
+    radial-gradient(60% 50% at 15% 10%, rgba(201, 160, 107, .20), transparent 70%),
+    radial-gradient(50% 40% at 100% 90%, rgba(70, 110, 160, .22), transparent 70%),
+    linear-gradient(180deg, var(--navy) 0%, var(--navy-3) 100%);
+}
+
+/* Formulaire : le numéro de téléphone se lit de gauche à droite (+212 puis le numéro) */
+[dir="rtl"] .sold-top strong { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .sold-bar span { inset: 0 0 0 auto; transform-origin: right; background: linear-gradient(270deg, #D6B27F, var(--gold-ink)); }
+[dir="rtl"] .phone-row { direction: ltr; }
+[dir="rtl"] .phone-row input { text-align: left; }
+[dir="rtl"] .phone-row input::placeholder { text-align: left; }
+[dir="rtl"] .form-ok { padding: 5px 8px 5px 12px; }
+
+/* Chiffres clés */
+[dir="rtl"] .proof-grid li:nth-child(odd) { border-right: 0; border-left: 1px solid var(--navy-line); }
+
+/* Pourquoi Yacout : filet doré à droite, gros numéro à droite, étiquette à gauche */
+[dir="rtl"] .why-steps { padding-left: 0; padding-right: 22px; }
+[dir="rtl"] .why-steps::before, [dir="rtl"] .why-steps::after { left: auto; right: 0; }
+[dir="rtl"] .why-big { left: auto; right: 14px; direction: ltr; }
+[dir="rtl"] .why-cap { right: auto; left: 14px; }
+[dir="rtl"] .why-note { right: auto; left: 12px; }
+
+/* Vue 3D : la réglette garde le même sens que le glissement de l'image */
+[dir="rtl"] .orbit-range { direction: ltr; }
+
+/* Bandeaux défilants : les textes arrivent par la gauche */
+[dir="rtl"] .marquee-track, [dir="rtl"] .ribbon-track { animation-name: marquee-rtl; }
+@keyframes marquee-rtl { to { transform: translateX(100%); } }
+
+/* Typologies */
+[dir="rtl"] .type-cap { left: auto; right: 10px; }
+[dir="rtl"] .type-thumbs { right: auto; left: 8px; }
+[dir="rtl"] .type-note { text-align: left; }
+
+/* Paiement : la frise commence à droite (Aujourd'hui) */
+[dir="rtl"] .pay-hands { margin-left: 0; margin-right: -9%; }
+[dir="rtl"] .pay-track li { text-align: right; }
+[dir="rtl"] .pay-track li:not(:last-child)::after { left: auto; right: 27px; }
+
+/* Localisation : photo des encadrés à gauche, filet doré qui part de la droite */
+[dir="rtl"] .loc-list li::after { background: linear-gradient(270deg, var(--gold), transparent 70%); }
+[dir="rtl"] .loc-list img {
+  left: 0; width: 60%; transform-origin: left center;
+  -webkit-mask-image: linear-gradient(270deg, transparent, rgba(0, 0, 0, .5) 40%, #000 80%);
+  mask-image: linear-gradient(270deg, transparent, rgba(0, 0, 0, .5) 40%, #000 80%);
+}
+/* Leaflet se calcule de gauche à droite */
+[dir="rtl"] .map { direction: ltr; }
+[dir="rtl"] .map .mk-home b, [dir="rtl"] .map .mk-place b { direction: rtl; }
+
+/* Galerie */
+[dir="rtl"] .gallery-count { margin-right: 0; margin-left: 6px; }
+[dir="rtl"] .g-cap { left: auto; right: 12px; }
+
+/* Promoteur */
+[dir="rtl"] .about-nums p + p { padding-left: 0; border-left: 0; padding-right: 24px; border-right: 1px solid var(--line-light); }
+
+/* FAQ */
+[dir="rtl"] .faq summary { padding: 12px 18px 12px 14px; }
+
+/* Chiffres géants */
+[dir="rtl"] .giant.is-live .giant-dots { right: auto; left: 12px; }
+[dir="rtl"] .giant-form { text-align: right; }
+
+/* Pied de page et barre collante */
+[dir="rtl"] .footer-links a + a::before { margin-right: 0; margin-left: 10px; }
+[dir="rtl"] .sticky-cta { padding: 8px 18px 8px 8px; }
+
+/* ---------- Tablette ---------- */
+@media (min-width: 768px) {
+  [dir="rtl"] .reassurance li { padding: 8px 10px 8px 14px; }
+  [dir="rtl"] .proof-grid li + li { border-left: 0 !important; border-right: 1px solid var(--navy-line) !important; }
+  [dir="rtl"] .why-big { left: auto; right: 22px; }
+  [dir="rtl"] .why-cap { right: auto; left: 22px; }
+  [dir="rtl"] .types-switch small { margin-left: 0; margin-right: 6px; }
+  [dir="rtl"] .type-cap { left: auto; right: 14px; }
+  [dir="rtl"] .type-thumbs { right: auto; left: 12px; }
+  [dir="rtl"] .pay-hands { margin-right: 0; }
+  [dir="rtl"] .pay-track li { text-align: center; }
+  [dir="rtl"] .pay-track::after { left: auto; right: 16.66%; background: linear-gradient(270deg, var(--gold), #F3DDB6); }
+  [dir="rtl"] .giant.is-live .giant-dots { right: auto; left: 24px; }
+}
+
+/* ---------- Ordinateur ---------- */
+@media (min-width: 1024px) {
+  [dir="rtl"] .img-note { right: auto; left: 16px; }
+  [dir="rtl"] .why-steps { padding-left: 0; padding-right: 36px; }
+  [dir="rtl"] .about-nums p { padding-left: 0; border-left: 0; padding-right: 24px; border-right: 1px solid var(--line-light); }
+  [dir="rtl"] .faq summary { padding: 16px 22px 16px 18px; }
+  [dir="rtl"] .faq-a p { padding: 0 22px 20px 60px; }
+  [dir="rtl"] .giant-slide--form { text-align: right; }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  [dir="rtl"] .about-nums p { padding-left: 0; padding-right: 20px; }
+}
+
+/* ---------- Page de remerciement ---------- */
+[dir="rtl"] .thanks { background: radial-gradient(60% 40% at 80% 0%, rgba(201, 160, 107, .16), transparent 70%), var(--navy); }
+[dir="rtl"] .thanks-timeline::before { left: auto; right: 19px; }
+[dir="rtl"] .thanks-photo figcaption { left: auto; right: 20px; }
+[dir="rtl"] .chat-bot { border-bottom-left-radius: 18px; border-bottom-right-radius: 6px; }
+[dir="rtl"] .chat-user { border-bottom-right-radius: 18px; border-bottom-left-radius: 6px; }
+[dir="rtl"] .chat-error button { margin-left: 0; margin-right: 4px; }
+[dir="rtl"] .chat-form { padding: 6px 16px 6px 6px; }
+@media (min-width: 1024px) {
+  [dir="rtl"] .thanks-photo figcaption { left: auto; right: 32px; }
+}
